@@ -1,0 +1,4 @@
+node_modules/
+out/_chunks/
+out/_keyframes/
+out/_tmp*

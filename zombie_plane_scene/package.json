@@ -1,0 +1,13 @@
+{
+  "name": "zombie_plane_scene",
+  "version": "1.0.0",
+  "description": "True 2.5D Hybrid Code-Rendered Frame — Zombie Apocalypse Inside an Airplane (Every Memory Has a Price Style Skill)",
+  "type": "module",
+  "scripts": {
+    "render": "node render.mjs",
+    "render:captioned": "node render.mjs --caption"
+  },
+  "dependencies": {
+    "three": "^0.187.0"
+  }
+}

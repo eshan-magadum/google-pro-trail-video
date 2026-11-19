@@ -4,34 +4,33 @@
 // waving cloth banner, foreground stone pillar & barrels, jagged glowing teleport crater, streak sparks, & Clone Twist!
 import * as THREE from 'three';
 import {
+  makeWeatheredStonePBR,
+  makeWoodPBR,
+  makeWovenClothPBR,
+  makeFoliagePBR,
+  makeBrushedMetalPBR,
+  addInkOutlines,
+} from './pbr_materials.js';
+import {
   makePaintedTwilightSkyDome,
-  makeStoneSlabTexture,
   makeArrivalCraterTexture,
   scatterInstancedGrassTufts,
   makeStreakSparksSystem,
   mulberry32,
 } from './env_helpers.js';
 
-function makeBannerTex() {
-  const c = document.createElement('canvas');
-  c.width = 256; c.height = 768;
-  const g = c.getContext('2d');
-  g.fillStyle = '#E8E2D6';
-  g.fillRect(0, 0, 256, 768);
-  g.fillStyle = '#1D2234';
-  g.fillRect(0, 0, 256, 42);
-  g.fillRect(0, 260, 256, 26);
-  g.fillRect(0, 304, 256, 14);
-  // Crisp circular geometric observatory/clan crest emblem!
-  g.strokeStyle = '#1D2234'; g.lineWidth = 14;
-  g.beginPath(); g.arc(128, 152, 68, 0, Math.PI * 2); g.stroke();
-  g.beginPath(); g.arc(128, 152, 28, 0, Math.PI * 2); g.fill();
-  g.fillRect(118, 355, 20, 340);
-  g.strokeStyle = '#14121E'; g.lineWidth = 12;
-  g.strokeRect(6, 6, 244, 756);
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
+function drawBannerEmblem(g, sz, ink) {
+  g.fillStyle = ink;
+  g.fillRect(0, 0, sz, 32);
+  g.fillRect(0, sz * 0.34, sz, 18);
+  g.fillRect(0, sz * 0.39, sz, 10);
+  // Crisp geometric observatory/clan crest!
+  g.strokeStyle = ink; g.lineWidth = 18;
+  g.beginPath(); g.arc(sz * 0.5, sz * 0.19, sz * 0.14, 0, Math.PI * 2); g.stroke();
+  g.beginPath(); g.arc(sz * 0.5, sz * 0.19, sz * 0.055, 0, Math.PI * 2); g.fill();
+  g.fillRect(sz * 0.47, sz * 0.46, sz * 0.06, sz * 0.44);
+  g.strokeStyle = '#14121E'; g.lineWidth = 14;
+  g.strokeRect(7, 7, sz - 14, sz - 14);
 }
 
 export function buildRooftopWorld(parentScene, heroTexture, cloneTexture, shadowTex) {
@@ -72,9 +71,18 @@ export function buildRooftopWorld(parentScene, heroTexture, cloneTexture, shadow
     grp.add(dot);
   }
 
-  // Stylized silhouette pine trees rising crisply right behind the stone parapet inside 9:16 FOV!
-  const pineMat = new THREE.MeshStandardMaterial({ color: '#16202C', roughness: 0.92 });
-  const trunkMat = new THREE.MeshStandardMaterial({ color: '#2F221F', roughness: 0.9 });
+  // SKILL v3.0 TRI-CHANNEL PBR MATERIALS FOR ROOFTOP (ZERO flat solid-color cones/blocks!)
+  const pineMat = makeFoliagePBR({ baseHex: '#18262E', tipHex: '#355058', seed: 601 });
+  const trunkMat = makeWoodPBR({ baseHex: '#3D2A22', darkHex: '#201410', planks: 3, knots: 5, seed: 602 });
+  const stoneMat = makeWeatheredStonePBR({ baseHex: '#5D5B6A', mortarHex: '#22212D', mossAmt: 0.34, rows: 6, cols: 4, repeat: [3, 3], seed: 603 });
+  const stoneTrim = makeWeatheredStonePBR({ baseHex: '#514E5C', mortarHex: '#201E2A', mossAmt: 0.25, rows: 3, cols: 2, repeat: [1, 1], seed: 604 });
+  const stoneCapMat = makeWeatheredStonePBR({ baseHex: '#3B3946', mortarHex: '#1A1824', mossAmt: 0.18, rows: 2, cols: 2, repeat: [1, 1], seed: 605 });
+  const woodMat = makeWoodPBR({ baseHex: '#4C3022', darkHex: '#28170F', planks: 4, knots: 6, seed: 606 });
+  const barrelMat = makeWoodPBR({ baseHex: '#68412C', darkHex: '#3A2114', planks: 6, knots: 4, seed: 607 });
+  const bannerMat = makeWovenClothPBR({ baseHex: '#DFD6C5', stripeColor: '#1B2032', drawEmblem: drawBannerEmblem, seed: 608 });
+  const ironBandMat = makeBrushedMetalPBR({ baseHex: '#2C2B38', darkHex: '#14131C', patinaAmt: 0.25, metalness: 0.55, roughness: 0.56, seed: 609 });
+
+  // Stylized textured pine trees rising crisply right behind the stone parapet!
   for (const [tx, tz, sc] of [
     [-2.7, -6.8, 1.15], [-1.7, -7.8, 0.95], [1.9, -7.4, 1.1], [2.9, -6.6, 1.25], [-0.4, -8.8, 0.85],
   ]) {
@@ -89,22 +97,25 @@ export function buildRooftopWorld(parentScene, heroTexture, cloneTexture, shadow
   }
 
   // 3. Mossy Carved Stone Rooftop Terrace + Crenellated Stone Battlement Parapet!
-  const stoneMat = new THREE.MeshStandardMaterial({ map: makeStoneSlabTexture(), roughness: 0.88 });
-  const stoneTrim = new THREE.MeshStandardMaterial({ color: '#4A4652', roughness: 0.85 });
-
   const terrace = new THREE.Mesh(new THREE.BoxGeometry(16, 1.2, 14), stoneMat);
   terrace.position.set(0, -0.6, 0.5);
+  terrace.receiveShadow = true;
   grp.add(terrace);
 
-  // Rear stone battlement parapet wall w/ crisp merlons & dark coping trim!
+  // Rear stone battlement parapet wall w/ crisp merlons, coping caps & 3D ink outlines!
   const wallBase = new THREE.Mesh(new THREE.BoxGeometry(15.5, 0.95, 0.55), stoneMat);
   wallBase.position.set(0, 0.48, -4.6);
+  wallBase.receiveShadow = true;
+  addInkOutlines(wallBase, { opacity: 0.65 });
   grp.add(wallBase);
   for (let x = -5.6; x <= 5.6; x += 1.25) {
     const merlon = new THREE.Mesh(new THREE.BoxGeometry(0.76, 0.52, 0.62), stoneTrim);
     merlon.position.set(x, 1.20, -4.6);
-    const cap = new THREE.Mesh(new THREE.BoxGeometry(0.84, 0.08, 0.68), new THREE.MeshStandardMaterial({ color: '#2F2C38', roughness: 0.8 }));
+    merlon.castShadow = true;
+    addInkOutlines(merlon, { opacity: 0.68 });
+    const cap = new THREE.Mesh(new THREE.BoxGeometry(0.84, 0.08, 0.68), stoneCapMat);
     cap.position.set(x, 1.48, -4.6);
+    addInkOutlines(cap, { opacity: 0.72 });
     grp.add(merlon, cap);
   }
 
@@ -115,11 +126,13 @@ export function buildRooftopWorld(parentScene, heroTexture, cloneTexture, shadow
   });
 
   // 5. Tall Wooden Lantern Post + Swaying Glowing Warm Paper Lantern (Pulled cleanly inside 9:16 left midground!)
-  const woodMat = new THREE.MeshStandardMaterial({ color: '#3F271E', roughness: 0.84 });
   const postV = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 3.25, 8), woodMat);
   postV.position.set(-1.62, 1.62, -2.25);
+  postV.castShadow = true;
+  addInkOutlines(postV, { thresholdDeg: 35, opacity: 0.62 });
   const postArm = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.075, 0.075), woodMat);
   postArm.position.set(-1.32, 3.08, -2.25);
+  addInkOutlines(postArm, { opacity: 0.68 });
   grp.add(postV, postArm);
 
   const lanternPivot = new THREE.Group();
@@ -144,41 +157,47 @@ export function buildRooftopWorld(parentScene, heroTexture, cloneTexture, shadow
   lanternLight.position.set(-1.02, 2.48, -2.1);
   grp.add(lanternLight);
 
-  // 6. Tall Waving Observatory/Clan Cloth Banner (Pulled cleanly inside 9:16 right midground!)
+  // 6. Tall Waving Woven-Linen Observatory/Clan Banner (Billowing cloth weave + folds + bumpMap!)
   const bPole = new THREE.Mesh(new THREE.CylinderGeometry(0.036, 0.044, 4.1, 8), woodMat);
   bPole.position.set(1.62, 2.05, -3.55);
   const bTopBar = new THREE.Mesh(new THREE.BoxGeometry(0.76, 0.05, 0.05), woodMat);
   bTopBar.position.set(1.26, 3.98, -3.55);
-  const banner = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.70, 2.05),
-    new THREE.MeshStandardMaterial({ map: makeBannerTex(), roughness: 0.85, side: THREE.DoubleSide })
-  );
+  const banner = new THREE.Mesh(new THREE.PlaneGeometry(0.70, 2.05), bannerMat);
   banner.position.set(1.26, 2.90, -3.55);
   grp.add(bPole, bTopBar, banner);
 
-  // Wooden bench + Foreground left stone pillar & right wooden barrels (framing bottom corners in 9:16!)
+  // Wooden bench + Foreground left stone pillar & right wooden barrels (with 3D ink outlines & shadows!)
   const benchTop = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.09, 0.42), woodMat);
   benchTop.position.set(-1.45, 0.48, -3.75);
+  benchTop.castShadow = true;
+  addInkOutlines(benchTop, { opacity: 0.68 });
   grp.add(benchTop);
   for (const bx of [-1.95, -0.95]) {
     const leg = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.48, 0.34), woodMat);
     leg.position.set(bx, 0.24, -3.75);
+    addInkOutlines(leg, { opacity: 0.65 });
     grp.add(leg);
   }
-  const barrelMat = new THREE.MeshStandardMaterial({ color: '#5A3726', roughness: 0.82 });
   const fgBarrel1 = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.26, 0.78, 14), barrelMat);
   fgBarrel1.position.set(1.42, 0.39, 2.15);
+  fgBarrel1.castShadow = true;
+  addInkOutlines(fgBarrel1, { thresholdDeg: 32, opacity: 0.60 });
   const fgBarrel2 = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.22, 0.64, 14), barrelMat);
   fgBarrel2.position.set(1.78, 0.32, 1.58);
+  fgBarrel2.castShadow = true;
+  addInkOutlines(fgBarrel2, { thresholdDeg: 32, opacity: 0.60 });
   const fgPillar = new THREE.Mesh(new THREE.BoxGeometry(0.62, 1.85, 0.62), stoneMat);
   fgPillar.position.set(-1.62, 0.92, 2.38);
+  fgPillar.castShadow = true;
+  addInkOutlines(fgPillar, { opacity: 0.72 });
   grp.add(fgBarrel1, fgBarrel2, fgPillar);
 
-  // Carved iron-banded wooden railing posts & mossy stone bollards framing left & right midground!
-  const ironBandMat = new THREE.MeshStandardMaterial({ color: '#24232E', roughness: 0.6, metalness: 0.5 });
+  // Carved iron-banded mossy stone bollards framing left & right midground!
   for (const [bx, bz] of [[-1.55, -0.35], [1.55, -0.45], [-1.35, -3.15], [1.45, -2.55]]) {
     const bol = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.19, 0.76, 8), stoneTrim);
     bol.position.set(bx, 0.38, bz);
+    bol.castShadow = true;
+    addInkOutlines(bol, { thresholdDeg: 32, opacity: 0.65 });
     const band = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.08, 8), ironBandMat);
     band.position.set(bx, 0.64, bz);
     grp.add(bol, band);

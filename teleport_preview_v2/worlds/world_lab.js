@@ -3,6 +3,11 @@
 // 3D helical copper Tesla coils, animated brass OVERLOAD gauge, power cables, Edison lamps, directional sparks.
 import * as THREE from 'three';
 import {
+  makeWoodPBR,
+  makeBrushedMetalPBR,
+  addInkOutlines,
+} from './pbr_materials.js';
+import {
   makeLabBrickWallTexture,
   makeOakFloorTexture,
   makeOrnamentalRugTexture,
@@ -34,19 +39,21 @@ export function buildLabWorld(parentScene, heroTexture, shadowTex) {
   const grp = new THREE.Group();
   parentScene.add(grp);
 
-  // Materials (warm natural brass, mahogany, aged brick, copper — ZERO blue wash!)
+  // SKILL v3.0 TRI-CHANNEL PBR MATERIALS (ZERO flat solid-color meshes! map + bumpMap + roughnessMap!)
   const wallMat = new THREE.MeshStandardMaterial({ map: makeLabBrickWallTexture(), roughness: 0.88 });
-  const floorMat = new THREE.MeshStandardMaterial({ map: makeOakFloorTexture(), roughness: 0.82 });
-  const woodDark = new THREE.MeshStandardMaterial({ color: '#4B2B1F', roughness: 0.78 });
-  const woodMid = new THREE.MeshStandardMaterial({ color: '#73442E', roughness: 0.74 });
-  const ironMat = new THREE.MeshStandardMaterial({ color: '#2F2C36', roughness: 0.58, metalness: 0.45 });
-  const brassMat = new THREE.MeshStandardMaterial({ color: '#D4A148', roughness: 0.36, metalness: 0.65 });
-  const copperMat = new THREE.MeshStandardMaterial({ color: '#C86A3B', roughness: 0.35, metalness: 0.68 });
-  const crateMat = new THREE.MeshStandardMaterial({ color: '#8A5A3A', roughness: 0.85 });
+  const floorMat = new THREE.MeshStandardMaterial({ map: makeOakFloorTexture(), roughness: 0.80 });
+  const woodDark = makeWoodPBR({ baseHex: '#4E2E20', darkHex: '#2A160E', planks: 4, knots: 5, seed: 111 });
+  const woodMid = makeWoodPBR({ baseHex: '#7E4D32', darkHex: '#482818', planks: 5, knots: 6, seed: 122 });
+  const crateMat = makeWoodPBR({ baseHex: '#94623C', darkHex: '#56341D', planks: 4, knots: 8, seed: 133 });
+  const ironMat = makeBrushedMetalPBR({ baseHex: '#35313E', darkHex: '#181520', patinaHex: '#4E4438', patinaAmt: 0.25, rivets: true, panelSeams: true, metalness: 0.52, roughness: 0.58, seed: 211 });
+  const brassMat = makeBrushedMetalPBR({ baseHex: '#D6A044', darkHex: '#6E4618', patinaHex: '#486858', patinaAmt: 0.16, metalness: 0.65, roughness: 0.36, seed: 222 });
+  const brassDeckMat = makeBrushedMetalPBR({ baseHex: '#C8923E', darkHex: '#643E14', patinaAmt: 0.20, rivets: true, panelSeams: true, metalness: 0.60, roughness: 0.42, seed: 225 });
+  const copperMat = makeBrushedMetalPBR({ baseHex: '#CE6C3B', darkHex: '#622A12', patinaHex: '#3C6E60', patinaAmt: 0.22, metalness: 0.68, roughness: 0.34, seed: 233 });
 
   // 1. Room Shell: Oak Floor, Ornate Crimson-Gold Persian Rug, Brick/Mahogany Walls & Beamed Ceiling
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(14, 14), floorMat);
   floor.rotation.x = -Math.PI / 2;
+  floor.receiveShadow = true;
   grp.add(floor);
 
   const rug = new THREE.Mesh(
@@ -55,10 +62,12 @@ export function buildLabWorld(parentScene, heroTexture, shadowTex) {
   );
   rug.rotation.x = -Math.PI / 2;
   rug.position.set(0.0, 0.012, 0.4);
+  rug.receiveShadow = true;
   grp.add(rug);
 
   const backWall = new THREE.Mesh(new THREE.PlaneGeometry(14, 6.8), wallMat);
   backWall.position.set(0, 3.4, -3.4);
+  backWall.receiveShadow = true;
   grp.add(backWall);
 
   for (const sx of [-5.2, 5.2]) {
@@ -72,10 +81,11 @@ export function buildLabWorld(parentScene, heroTexture, shadowTex) {
   ceiling.position.set(0, 5.4, 1.0);
   grp.add(ceiling);
 
-  // Heavy exposed ceiling timber beams & brass steam pipes running across back wall
+  // Heavy exposed ceiling timber beams & brushed copper steam pipes running across back wall
   for (let z = -2.6; z <= 4.2; z += 1.7) {
     const beam = new THREE.Mesh(new THREE.BoxGeometry(10.6, 0.24, 0.22), woodDark);
     beam.position.set(0, 5.25, z);
+    addInkOutlines(beam, { opacity: 0.62 });
     grp.add(beam);
   }
   for (const py of [3.9, 4.22]) {
@@ -91,6 +101,7 @@ export function buildLabWorld(parentScene, heroTexture, shadowTex) {
     [woodDark, woodDark, woodDark, woodDark, new THREE.MeshStandardMaterial({ map: makeChalkboardTexture(), roughness: 0.88 }), woodDark]
   );
   chalkBoard.position.set(-2.55, 2.38, -3.32);
+  addInkOutlines(chalkBoard, { opacity: 0.72 });
   grp.add(chalkBoard);
 
   const shelfTex = makeBookshelfTexture();
@@ -102,6 +113,7 @@ export function buildLabWorld(parentScene, heroTexture, shadowTex) {
     );
     bs.position.set(bx, 1.58, bz);
     bs.rotation.y = ry;
+    addInkOutlines(bs, { opacity: 0.65 });
     grp.add(bs);
   }
 
@@ -200,16 +212,21 @@ export function buildLabWorld(parentScene, heroTexture, shadowTex) {
 
   const consBody = new THREE.Mesh(new THREE.BoxGeometry(0.92, 1.12, 0.60), ironMat);
   consBody.position.y = 0.56;
-  const consDeck = new THREE.Mesh(new THREE.BoxGeometry(0.98, 0.10, 0.66), brassMat);
+  consBody.castShadow = true;
+  addInkOutlines(consBody, { opacity: 0.78 });
+  const consDeck = new THREE.Mesh(new THREE.BoxGeometry(0.98, 0.10, 0.66), brassDeckMat);
   consDeck.position.set(0, 1.14, 0);
   consDeck.rotation.x = 0.22;
+  consDeck.castShadow = true;
+  addInkOutlines(consDeck, { opacity: 0.78 });
   consoleGroup.add(consBody, consDeck);
 
-  // Animated Brass Pressure/Flux Gauge mounted upright on console!
+  // Animated Weathered Brass & Glass Pressure/Flux Gauge mounted upright on console!
   const gaugeRig = makeDynamicGaugeRig();
   const gaugeHousing = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.12, 24), brassMat);
   gaugeHousing.rotation.x = Math.PI / 2;
   gaugeHousing.position.set(0.18, 1.44, -0.10);
+  addInkOutlines(gaugeHousing, { thresholdDeg: 34, opacity: 0.72 });
   const gaugeFace = new THREE.Mesh(
     new THREE.CircleGeometry(0.22, 24),
     new THREE.MeshBasicMaterial({ map: gaugeRig.texture })
@@ -240,21 +257,25 @@ export function buildLabWorld(parentScene, heroTexture, shadowTex) {
     [new THREE.Vector3(-1.05, 0.06, 0.92), new THREE.Vector3(-0.62, 0.05, 1.28), new THREE.Vector3(0.45, 0.06, 0.45), new THREE.Vector3(0.65, 0.07, -0.15)],
   ]) {
     const cable = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, 0.042, 8, false), ironMat);
+    cable.castShadow = true;
     grp.add(cable);
   }
 
-  // 6. FOREGROUND DEPTH OCCLUDERS (Pulled cleanly into 9:16 bottom-left & bottom-right corners!)
+  // 6. FOREGROUND DEPTH OCCLUDERS (Pulled cleanly into 9:16 bottom-left & bottom-right corners w/ ink outlines!)
   const fgBench = new THREE.Group();
   fgBench.position.set(-1.75, 0.0, 2.75);
   fgBench.rotation.y = 0.38;
   grp.add(fgBench);
   const wbTop = new THREE.Mesh(new THREE.BoxGeometry(1.75, 0.10, 0.90), woodMid);
   wbTop.position.y = 0.88;
+  wbTop.castShadow = true;
+  addInkOutlines(wbTop, { opacity: 0.75 });
   fgBench.add(wbTop);
   for (const lx of [-0.78, 0.78]) {
     for (const lz of [-0.36, 0.36]) {
       const leg = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.88, 0.08), woodDark);
       leg.position.set(lx, 0.44, lz);
+      addInkOutlines(leg, { opacity: 0.68 });
       fgBench.add(leg);
     }
   }
@@ -278,15 +299,20 @@ export function buildLabWorld(parentScene, heroTexture, shadowTex) {
   deskLampShade.rotation.z = 0.25;
   fgBench.add(deskLampBase, deskLampStem, deskLampShade);
 
-  // Foreground Right Stacked Shipping Crates + Wooden Stool
+  // Foreground Right Stacked Shipping Crates + Wooden Stool (w/ PBR wood grain & 3D ink outlines!)
   const crate1 = new THREE.Mesh(new THREE.BoxGeometry(0.88, 0.72, 0.84), crateMat);
   crate1.position.set(1.55, 0.36, 2.55);
   crate1.rotation.y = -0.28;
+  crate1.castShadow = true;
+  addInkOutlines(crate1, { opacity: 0.75 });
   const crate2 = new THREE.Mesh(new THREE.BoxGeometry(0.64, 0.50, 0.64), woodMid);
   crate2.position.set(1.68, 0.96, 2.42);
   crate2.rotation.y = 0.18;
+  crate2.castShadow = true;
+  addInkOutlines(crate2, { opacity: 0.75 });
   const stoolSeat = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.06, 16), woodMid);
   stoolSeat.position.set(1.18, 0.56, 1.72);
+  stoolSeat.castShadow = true;
   const stoolStem = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.08, 0.54, 10), ironMat);
   stoolStem.position.set(1.18, 0.27, 1.72);
   grp.add(crate1, crate2, stoolSeat, stoolStem);

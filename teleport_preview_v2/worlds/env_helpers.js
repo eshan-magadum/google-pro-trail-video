@@ -1,6 +1,6 @@
-// Skill v2.0 High-Detail Procedural PBR Textures, Skyboxes, Foliage, Coils & VFX Helpers
-// Zero external images — engineered to pass Skill v2.0 Single-Frame Detail Standard (edge_pct >= 14%).
+// Skill v3.0 High-Detail Procedural PBR Textures, Skyboxes, Foliage, Coils & VFX Helpers
 import * as THREE from 'three';
+import { makeBrushedMetalPBR, makeTwistedCoilPBR, addInkOutlines } from './pbr_materials.js';
 
 export function mulberry32(seed) {
   let a = seed >>> 0;
@@ -207,52 +207,113 @@ export function makeChalkboardTexture() {
   return toTex(c);
 }
 
-// 6. Dynamic Animated Brass Pressure / Voltage Gauge Dial (needle slams into RED ZONE!)
+// 6. Dynamic Animated Weathered Brass & Glass Pressure/Voltage Gauge (Skill v3.0 Parchment & Glass DNA!)
 export function makeDynamicGaugeRig() {
   const c = document.createElement('canvas');
   c.width = 384; c.height = 384;
   const g = c.getContext('2d');
   const tex = toTex(c);
 
+  // Pre-bake static aged parchment paper texture & grime ring so per-frame updates stay ultra-fast!
+  const bgC = document.createElement('canvas');
+  bgC.width = 384; bgC.height = 384;
+  const bg = bgC.getContext('2d');
+  const rng = mulberry32(8421);
+
+  // Brushed metallic brass bezel with warm directional gradient
+  const bezG = bg.createLinearGradient(0, 0, 384, 384);
+  bezG.addColorStop(0, '#E4B85A'); bezG.addColorStop(0.5, '#A9742A'); bezG.addColorStop(1, '#583612');
+  bg.fillStyle = bezG;
+  bg.beginPath(); bg.arc(192, 192, 186, 0, Math.PI * 2); bg.fill();
+  bg.strokeStyle = '#181018'; bg.lineWidth = 10; bg.stroke();
+  // Tiny brass bezel screws
+  for (let s = 0; s < 4; s++) {
+    const sa = s * Math.PI * 0.5 + Math.PI * 0.25;
+    bg.fillStyle = '#4A2C12';
+    bg.beginPath(); bg.arc(192 + Math.cos(sa) * 173, 192 + Math.sin(sa) * 173, 6, 0, Math.PI * 2); bg.fill();
+  }
+
+  // Aged yellowed cream parchment dial face
+  bg.save();
+  bg.beginPath(); bg.arc(192, 192, 162, 0, Math.PI * 2); bg.clip();
+  const faceG = bg.createRadialGradient(178, 174, 24, 192, 192, 168);
+  faceG.addColorStop(0, '#F5ECD4');
+  faceG.addColorStop(0.68, '#E4D4B0');
+  faceG.addColorStop(1, '#B89E74');
+  bg.fillStyle = faceG; bg.fillRect(0, 0, 384, 384);
+
+  // Subtle parchment age stains & paper fiber grain!
+  for (let i = 0; i < 650; i++) {
+    const px = 26 + rng() * 332, py = 26 + rng() * 332;
+    bg.fillStyle = rng() < 0.5 ? 'rgba(92,66,38,0.08)' : 'rgba(255,250,235,0.09)';
+    bg.fillRect(px, py, 2 + rng() * 3, 2 + rng() * 3);
+  }
+  // Inner bezel cast shadow ring (gives genuine recessed depth behind glass!)
+  const rimSh = bg.createRadialGradient(192, 196, 134, 192, 192, 164);
+  rimSh.addColorStop(0, 'rgba(22,14,18,0)');
+  rimSh.addColorStop(0.75, 'rgba(22,14,18,0.22)');
+  rimSh.addColorStop(1, 'rgba(22,14,18,0.68)');
+  bg.fillStyle = rimSh; bg.fillRect(0, 0, 384, 384);
+  bg.restore();
+
+  bg.strokeStyle = '#181018'; bg.lineWidth = 8;
+  bg.beginPath(); bg.arc(192, 192, 162, 0, Math.PI * 2); bg.stroke();
+
+  // Red DANGER zone arc + sub-ticks + printed vintage serial number
+  bg.strokeStyle = '#D4302C'; bg.lineWidth = 22;
+  bg.beginPath(); bg.arc(192, 192, 126, -Math.PI * 0.28, Math.PI * 0.18); bg.stroke();
+  bg.strokeStyle = '#1E1622'; bg.lineWidth = 4.5;
+  for (let i = 0; i <= 24; i++) {
+    const a = Math.PI * 0.82 + (i / 24) * Math.PI * 1.36;
+    const major = i % 2 === 0;
+    bg.lineWidth = major ? 5 : 2.5;
+    bg.beginPath();
+    bg.moveTo(192 + Math.cos(a) * (major ? 112 : 124), 192 + Math.sin(a) * (major ? 112 : 124));
+    bg.lineTo(192 + Math.cos(a) * 144, 192 + Math.sin(a) * 144);
+    bg.stroke();
+  }
+  bg.fillStyle = '#241B1E';
+  bg.font = '900 26px "DejaVu Sans", Arial, sans-serif';
+  bg.textAlign = 'center';
+  bg.fillText('FLUX kV', 192, 260);
+  bg.font = '700 13px "DejaVu Sans", monospace';
+  bg.fillStyle = 'rgba(42,32,26,0.72)';
+  bg.fillText('MK-IV  NO. 0842-B', 192, 134);
+
   function update(level = 0.25) {
     g.clearRect(0, 0, 384, 384);
-    // Brass bezel
-    g.fillStyle = '#B88438';
-    g.beginPath(); g.arc(192, 192, 186, 0, Math.PI * 2); g.fill();
-    g.strokeStyle = '#181018'; g.lineWidth = 10; g.stroke();
-    // Cream vintage dial face
-    g.fillStyle = '#F2E7CE';
-    g.beginPath(); g.arc(192, 192, 162, 0, Math.PI * 2); g.fill();
-    g.stroke();
+    g.drawImage(bgC, 0, 0);
 
-    // Red DANGER zone arc on right side!
-    g.strokeStyle = '#DF3432'; g.lineWidth = 24;
-    g.beginPath(); g.arc(192, 192, 128, -Math.PI * 0.28, Math.PI * 0.18); g.stroke();
-
-    // Tick marks
-    g.strokeStyle = '#1A1420'; g.lineWidth = 5;
-    for (let i = 0; i <= 12; i++) {
-      const a = Math.PI * 0.82 + (i / 12) * Math.PI * 1.36;
-      g.beginPath();
-      g.moveTo(192 + Math.cos(a) * 114, 192 + Math.sin(a) * 114);
-      g.lineTo(192 + Math.cos(a) * 144, 192 + Math.sin(a) * 144);
-      g.stroke();
-    }
-    g.fillStyle = '#181018';
-    g.font = '900 28px "DejaVu Sans", Arial, sans-serif';
-    g.textAlign = 'center';
-    g.fillText('FLUX kV', 192, 265);
     if (level > 0.72) {
-      g.fillStyle = '#D82A2A';
-      g.fillText('OVERLOAD', 192, 304);
+      g.fillStyle = '#C82222';
+      g.font = '900 28px "DejaVu Sans", Arial, sans-serif';
+      g.textAlign = 'center';
+      g.fillText('OVERLOAD', 192, 300);
     }
 
-    // Animated needle
+    // Animated needle w/ soft drop shadow on parchment face!
     const ang = Math.PI * 0.82 + Math.min(1.06, Math.max(0, level)) * Math.PI * 1.36;
-    g.strokeStyle = '#CC2424'; g.lineWidth = 10; g.lineCap = 'round';
+    g.strokeStyle = 'rgba(20,12,18,0.34)'; g.lineWidth = 10; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(195, 197); g.lineTo(195 + Math.cos(ang) * 124, 197 + Math.sin(ang) * 124); g.stroke();
+    g.strokeStyle = '#C62222'; g.lineWidth = 9;
     g.beginPath(); g.moveTo(192, 192); g.lineTo(192 + Math.cos(ang) * 124, 192 + Math.sin(ang) * 124); g.stroke();
-    g.fillStyle = '#181018';
+    g.fillStyle = '#221A1E';
     g.beginPath(); g.arc(192, 192, 18, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#D4A44A';
+    g.beginPath(); g.arc(192, 192, 8, 0, Math.PI * 2); g.fill();
+
+    // Curved glass cover diagonal reflection sheen!
+    g.save();
+    g.beginPath(); g.arc(192, 192, 158, 0, Math.PI * 2); g.clip();
+    const gl = g.createLinearGradient(60, 40, 290, 270);
+    gl.addColorStop(0, 'rgba(255,255,255,0.28)');
+    gl.addColorStop(0.28, 'rgba(255,255,255,0.08)');
+    gl.addColorStop(0.32, 'rgba(255,255,255,0)');
+    gl.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = gl;
+    g.fillRect(0, 0, 384, 384);
+    g.restore();
+
     tex.needsUpdate = true;
   }
   update(0.25);
@@ -409,16 +470,17 @@ export function scatterInstancedGrassTufts(parent, {
   return inst;
 }
 
-// 11. True 3D Helical Copper Tesla Coil (TubeGeometry wrapped around ceramic/brass core!)
+// 11. True 3D Helical Copper Tesla Coil (Skill v3.0 Twisted Copper Strand PBR + Brushed Brass Caps!)
 export function makeHelicalCopperCoil({ radius = 0.22, height = 1.65, turns = 16 } = {}) {
   const grp = new THREE.Group();
-  const coreMat = new THREE.MeshStandardMaterial({ color: '#2B232C', roughness: 0.65, metalness: 0.3 });
-  const brassMat = new THREE.MeshStandardMaterial({ color: '#CFA04E', roughness: 0.38, metalness: 0.65 });
-  const copperMat = new THREE.MeshStandardMaterial({ color: '#D47644', roughness: 0.32, metalness: 0.72 });
+  const coreMat = makeBrushedMetalPBR({ baseHex: '#2E2733', darkHex: '#15111A', patinaAmt: 0.22, metalness: 0.42, roughness: 0.62, seed: 311 });
+  const brassMat = makeBrushedMetalPBR({ baseHex: '#D4A048', darkHex: '#6A4416', patinaAmt: 0.18, metalness: 0.66, roughness: 0.36, seed: 312 });
+  const copperMat = makeTwistedCoilPBR({ baseHex: '#D8723E', darkHex: '#54200E', repeat: [26, 2], seed: 313 });
 
   const core = new THREE.Mesh(new THREE.CylinderGeometry(radius * 0.76, radius * 0.76, height, 20), coreMat);
   const capTop = new THREE.Mesh(new THREE.CylinderGeometry(radius * 1.22, radius * 1.22, 0.10, 20), brassMat);
   capTop.position.y = height * 0.5;
+  addInkOutlines(capTop, { thresholdDeg: 32, opacity: 0.65 });
   const capBot = capTop.clone();
   capBot.position.y = -height * 0.5;
   const finial = new THREE.Mesh(new THREE.TorusGeometry(radius * 0.95, 0.055, 10, 24), brassMat);

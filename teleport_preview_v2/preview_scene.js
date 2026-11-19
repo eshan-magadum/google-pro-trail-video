@@ -14,6 +14,7 @@ import { createInventorRig } from './rigs/inventor_rig.js';
 import { buildLabWorld } from './worlds/world_lab.js';
 import { buildRooftopWorld } from './worlds/world_rooftop.js';
 import { mulberry32 } from './worlds/env_helpers.js';
+import { makePaperToothCanvas } from './worlds/pbr_materials.js';
 
 const W = 720;
 const H = 1280;
@@ -34,13 +35,15 @@ function makeSoftShadowTex() {
   return new THREE.CanvasTexture(c);
 }
 
-// 1. Setup Three.js WebGL2 Renderer & Half-Res UnrealBloomPass
+// 1. Setup Three.js WebGL2 Renderer w/ Real-Time PCFSoftShadowMap & Half-Res UnrealBloomPass
 const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, powerPreference: 'high-performance' });
 renderer.setSize(W, H, false);
 renderer.setPixelRatio(1);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.12;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(46, W / H, 0.1, 140);
@@ -51,12 +54,18 @@ const bloomPass = new UnrealBloomPass(new THREE.Vector2(W / 2, H / 2), 0.30, 0.3
 composer.addPass(bloomPass);
 composer.addPass(new OutputPass());
 
-// 2. Dual Lighting Rigs (Warm Honey-Amber Lab vs Moonlit Twilight Rooftop — High Color-Temperature Contrast!)
+// 2. Dual Lighting Rigs (Warm Honey-Amber Lab vs Moonlit Twilight Rooftop — Real-Time Shadow Casting!)
 const labLights = new THREE.Group();
 scene.add(labLights);
-const labHemi = new THREE.HemisphereLight('#FFE2B4', '#522E20', 1.08);
-const labKey = new THREE.DirectionalLight('#FFC678', 1.55);
+const labHemi = new THREE.HemisphereLight('#FFE2B4', '#522E20', 1.05);
+const labKey = new THREE.DirectionalLight('#FFC678', 1.60);
 labKey.position.set(3.2, 6.5, 4.2);
+labKey.castShadow = true;
+labKey.shadow.mapSize.set(1024, 1024);
+labKey.shadow.camera.near = 1; labKey.shadow.camera.far = 20;
+labKey.shadow.camera.left = -6; labKey.shadow.camera.right = 6;
+labKey.shadow.camera.top = 6; labKey.shadow.camera.bottom = -6;
+labKey.shadow.bias = -0.0008;
 const labFill = new THREE.DirectionalLight('#E89A60', 0.60);
 labFill.position.set(-4.0, 2.8, 2.5);
 labLights.add(labHemi, labKey, labFill);
@@ -72,8 +81,14 @@ labLights.add(podLight);
 const roofLights = new THREE.Group();
 scene.add(roofLights);
 const roofHemi = new THREE.HemisphereLight('#869ED6', '#332C3E', 1.05);
-const moonKey = new THREE.DirectionalLight('#C2D6FF', 1.18);
+const moonKey = new THREE.DirectionalLight('#C2D6FF', 1.22);
 moonKey.position.set(-5.0, 12.0, -14.0);
+moonKey.castShadow = true;
+moonKey.shadow.mapSize.set(1024, 1024);
+moonKey.shadow.camera.near = 2; moonKey.shadow.camera.far = 36;
+moonKey.shadow.camera.left = -8; moonKey.shadow.camera.right = 8;
+moonKey.shadow.camera.top = 8; moonKey.shadow.camera.bottom = -8;
+moonKey.shadow.bias = -0.0008;
 const roofWarmBounce = new THREE.DirectionalLight('#FFA858', 0.52);
 roofWarmBounce.position.set(-4.0, 3.5, 3.5);
 roofLights.add(roofHemi, moonKey, roofWarmBounce);
@@ -206,6 +221,10 @@ function renderFrame(rawFrame) {
     }
     ctx.restore();
   }
+
+  // Subtle organic watercolor/film paper tooth unifying 3D PBR surfaces & 2D cel characters!
+  if (!window.__paperTooth) window.__paperTooth = makePaperToothCanvas(W, H, 9191);
+  ctx.drawImage(window.__paperTooth, 0, 0);
 
   // Balanced natural vignette (preserves lifted shadow floor!)
   ctx.drawImage(vigCanvas, 0, 0);

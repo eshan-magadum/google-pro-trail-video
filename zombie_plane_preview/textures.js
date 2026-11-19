@@ -1,0 +1,594 @@
+// Procedural Canvas2D PBR textures + animated Storm Porthole Rig for the 10s 2.5D Zombie Plane Preview.
+// 100% generated from code — zero external image files.
+import * as THREE from 'three';
+
+function makeCanvas(w, h) {
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  return [c, c.getContext('2d')];
+}
+
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a |= 0;
+    a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function toTex(canvas, { srgb = true, repeat = [1, 1], anisotropy = 8 } = {}) {
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(repeat[0], repeat[1]);
+  tex.anisotropy = anisotropy;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+// 1. Curved Cabin Interior Plastic Wall & Overhead Bin Panel Texture
+export function makeCabinPanelTexture() {
+  const [c, g] = makeCanvas(512, 1024);
+  const [bc, bg] = makeCanvas(512, 1024);
+  const rng = mulberry32(104);
+
+  const grad = g.createLinearGradient(0, 0, 512, 0);
+  grad.addColorStop(0.0, '#363C7A');
+  grad.addColorStop(0.5, '#4A5194');
+  grad.addColorStop(1.0, '#31366E');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 512, 1024);
+
+  bg.fillStyle = '#808080';
+  bg.fillRect(0, 0, 512, 1024);
+
+  for (let y = 0; y < 1024; y += 128) {
+    g.fillStyle = 'rgba(15,16,44,0.45)';
+    g.fillRect(0, y, 512, 6);
+    g.fillStyle = 'rgba(145,160,240,0.16)';
+    g.fillRect(0, y + 6, 512, 3);
+    bg.fillStyle = '#252525';
+    bg.fillRect(0, y, 512, 6);
+  }
+  for (let x = 0; x < 512; x += 256) {
+    g.fillStyle = 'rgba(12,14,38,0.5)';
+    g.fillRect(x, 0, 5, 1024);
+    bg.fillStyle = '#222222';
+    bg.fillRect(x, 0, 5, 1024);
+  }
+  for (let i = 0; i < 120; i++) {
+    const x = rng() * 512;
+    const y = rng() * 1024;
+    const r = 24 + rng() * 64;
+    g.fillStyle = rng() > 0.5 ? 'rgba(20,22,64,0.05)' : 'rgba(130,148,238,0.04)';
+    g.beginPath();
+    g.arc(x, y, r, 0, Math.PI * 2);
+    g.fill();
+  }
+  return {
+    map: toTex(c, { repeat: [1, 4] }),
+    bumpMap: toTex(bc, { srgb: false, repeat: [1, 4] }),
+  };
+}
+
+// 2. Overhead Luggage Bin Door Texture
+export function makeBinDoorTexture(rowLabel = '12 - 14') {
+  const [c, g] = makeCanvas(512, 256);
+  const grad = g.createLinearGradient(0, 0, 0, 256);
+  grad.addColorStop(0.0, '#5860A8');
+  grad.addColorStop(0.6, '#484E92');
+  grad.addColorStop(1.0, '#30346A');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 512, 256);
+
+  g.strokeStyle = '#181A42';
+  g.lineWidth = 10;
+  g.strokeRect(8, 8, 496, 240);
+
+  g.fillStyle = '#191C44';
+  g.beginPath();
+  g.roundRect(190, 175, 132, 34, 8);
+  g.fill();
+  g.strokeStyle = '#8C9AF0';
+  g.lineWidth = 3;
+  g.stroke();
+
+  g.fillStyle = '#222758';
+  g.fillRect(28, 198, 92, 30);
+  g.fillStyle = '#CFD9FF';
+  g.font = '700 18px "DejaVu Sans", Arial, sans-serif';
+  g.fillText(rowLabel, 40, 219);
+  return toTex(c);
+}
+
+// 3. Aircraft Seatback Shell + Antimacassar + Folded Tray Table
+export function makeSeatBackTexture() {
+  const [c, g] = makeCanvas(512, 768);
+  const [bc, bg] = makeCanvas(512, 768);
+  const rng = mulberry32(209);
+
+  const grad = g.createLinearGradient(0, 0, 0, 768);
+  grad.addColorStop(0.0, '#3D448A');
+  grad.addColorStop(0.55, '#2E3474');
+  grad.addColorStop(1.0, '#1D2152');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 512, 768);
+
+  bg.fillStyle = '#808080';
+  bg.fillRect(0, 0, 512, 768);
+
+  for (let y = 0; y < 768; y += 8) {
+    g.fillStyle = y % 16 === 0 ? 'rgba(12,14,42,0.14)' : 'rgba(130,145,235,0.06)';
+    g.fillRect(0, y, 512, 3);
+    bg.fillStyle = y % 16 === 0 ? '#686868' : '#969696';
+    bg.fillRect(0, y, 512, 3);
+  }
+
+  const clothGrad = g.createLinearGradient(0, 14, 0, 178);
+  clothGrad.addColorStop(0.0, '#C8CEEE');
+  clothGrad.addColorStop(1.0, '#9DA4D8');
+  g.fillStyle = clothGrad;
+  g.beginPath();
+  g.roundRect(78, 18, 356, 152, 16);
+  g.fill();
+  g.strokeStyle = '#181A40';
+  g.lineWidth = 6;
+  g.stroke();
+
+  g.fillStyle = '#333978';
+  g.beginPath();
+  g.roundRect(64, 232, 384, 248, 18);
+  g.fill();
+  g.strokeStyle = '#16173A';
+  g.lineWidth = 7;
+  g.stroke();
+
+  g.fillStyle = '#17193C';
+  g.beginPath();
+  g.roundRect(220, 214, 72, 26, 6);
+  g.fill();
+  g.strokeStyle = '#7582D4';
+  g.lineWidth = 3;
+  g.stroke();
+
+  g.fillStyle = '#242960';
+  g.beginPath();
+  g.roundRect(74, 514, 364, 185, 14);
+  g.fill();
+  g.strokeStyle = '#141536';
+  g.lineWidth = 6;
+  g.stroke();
+
+  g.save();
+  g.translate(160, 508);
+  g.rotate(-0.08);
+  g.fillStyle = '#D99B58';
+  g.fillRect(0, -28, 128, 36);
+  g.strokeStyle = '#141226';
+  g.lineWidth = 5;
+  g.strokeRect(0, -28, 128, 36);
+  g.restore();
+
+  for (let i = 0; i < 60; i++) {
+    g.fillStyle = 'rgba(15,16,48,0.04)';
+    g.beginPath();
+    g.arc(rng() * 512, rng() * 768, 22 + rng() * 45, 0, Math.PI * 2);
+    g.fill();
+  }
+
+  return {
+    map: toTex(c),
+    bumpMap: toTex(bc, { srgb: false }),
+  };
+}
+
+// 4. Ribbed Indigo Aisle Carpet Texture
+export function makeCarpetTexture() {
+  const [c, g] = makeCanvas(512, 1024);
+  const rng = mulberry32(317);
+
+  g.fillStyle = '#1D2154';
+  g.fillRect(0, 0, 512, 1024);
+
+  for (let x = 0; x < 512; x += 24) {
+    g.fillStyle = x % 48 === 0 ? 'rgba(65,78,162,0.22)' : 'rgba(12,14,44,0.25)';
+    g.fillRect(x, 0, 12, 1024);
+  }
+  g.strokeStyle = 'rgba(105,120,215,0.12)';
+  g.lineWidth = 3;
+  for (let y = 0; y < 1024; y += 64) {
+    for (let x = 0; x < 512; x += 64) {
+      g.beginPath();
+      g.moveTo(x + 32, y + 10);
+      g.lineTo(x + 54, y + 32);
+      g.lineTo(x + 32, y + 54);
+      g.lineTo(x + 10, y + 32);
+      g.closePath();
+      g.stroke();
+    }
+  }
+  for (let i = 0; i < 200; i++) {
+    g.fillStyle = rng() > 0.5 ? 'rgba(15,16,46,0.07)' : 'rgba(85,98,195,0.05)';
+    g.beginPath();
+    g.arc(rng() * 512, rng() * 1024, 16 + rng() * 48, 0, Math.PI * 2);
+    g.fill();
+  }
+  return toTex(c, { repeat: [2, 8] });
+}
+
+// 5a. Static Recessed Oval Porthole Window
+export function makePortholeTexture(withLightning = false) {
+  const [c, g] = makeCanvas(256, 384);
+  const rng = mulberry32(withLightning ? 808 : 404);
+
+  g.fillStyle = '#3B4284';
+  g.fillRect(0, 0, 256, 384);
+
+  g.save();
+  g.beginPath();
+  g.roundRect(28, 28, 200, 328, 96);
+  g.clip();
+
+  const sky = g.createLinearGradient(0, 28, 0, 356);
+  if (withLightning) {
+    sky.addColorStop(0.0, '#12184E');
+    sky.addColorStop(0.45, '#2E459E');
+    sky.addColorStop(0.75, '#7294F5');
+    sky.addColorStop(1.0, '#1B2262');
+  } else {
+    sky.addColorStop(0.0, '#0E123C');
+    sky.addColorStop(0.55, '#1D296E');
+    sky.addColorStop(0.85, '#34479C');
+    sky.addColorStop(1.0, '#141A4E');
+  }
+  g.fillStyle = sky;
+  g.fillRect(28, 28, 200, 328);
+
+  for (let i = 0; i < 10; i++) {
+    const cx = 40 + rng() * 180;
+    const cy = 190 + rng() * 140;
+    const rad = 36 + rng() * 64;
+    const cg = g.createRadialGradient(cx, cy, 4, cx, cy, rad);
+    cg.addColorStop(0, withLightning ? 'rgba(180,206,255,0.42)' : 'rgba(92,115,215,0.28)');
+    cg.addColorStop(1, 'rgba(20,26,80,0)');
+    g.fillStyle = cg;
+    g.beginPath();
+    g.arc(cx, cy, rad, 0, Math.PI * 2);
+    g.fill();
+  }
+
+  if (withLightning) {
+    g.strokeStyle = '#DCE8FF';
+    g.lineWidth = 4;
+    g.beginPath();
+    g.moveTo(148, 60);
+    g.lineTo(122, 138);
+    g.lineTo(146, 152);
+    g.lineTo(106, 240);
+    g.stroke();
+  }
+
+  g.strokeStyle = 'rgba(205,222,255,0.34)';
+  g.lineWidth = 2;
+  for (let i = 0; i < 18; i++) {
+    const rx = 38 + rng() * 180;
+    const ry = 40 + rng() * 290;
+    g.beginPath();
+    g.moveTo(rx, ry);
+    g.lineTo(rx - 18, ry + 12);
+    g.stroke();
+  }
+
+  const ref = g.createLinearGradient(28, 28, 228, 356);
+  ref.addColorStop(0.0, 'rgba(175,195,255,0.24)');
+  ref.addColorStop(0.5, 'rgba(175,195,255,0)');
+  ref.addColorStop(1.0, 'rgba(15,18,52,0.32)');
+  g.fillStyle = ref;
+  g.fillRect(28, 28, 200, 328);
+  g.restore();
+
+  g.strokeStyle = '#15173D';
+  g.lineWidth = 14;
+  g.beginPath();
+  g.roundRect(28, 28, 200, 328, 96);
+  g.stroke();
+
+  g.strokeStyle = 'rgba(148,164,245,0.35)';
+  g.lineWidth = 4;
+  g.beginPath();
+  g.roundRect(21, 21, 214, 342, 102);
+  g.stroke();
+
+  return toTex(c);
+}
+
+// 5b. High-Res Animated Hero Storm Porthole (for Shot 1 Macro Hook -> Glass Pull-Through!)
+export function makeAnimatedPortholeRig() {
+  const [c, g] = makeCanvas(512, 768);
+  const tex = toTex(c);
+
+  // Precompute deterministic raindrops & cloud wisps
+  const rng = mulberry32(40412);
+  const drops = Array.from({ length: 42 }, () => ({
+    x: 64 + rng() * 384,
+    y: 68 + rng() * 620,
+    len: 18 + rng() * 34,
+    spd: 6 + rng() * 10,
+  }));
+  const clouds = Array.from({ length: 12 }, () => ({
+    x: 60 + rng() * 400,
+    y: 350 + rng() * 280,
+    r: 72 + rng() * 125,
+    spd: 1.4 + rng() * 2.2,
+  }));
+
+  function update(frame, flash = 0) {
+    // Molded cabin wall surround
+    g.fillStyle = '#3B4284';
+    g.fillRect(0, 0, 512, 768);
+
+    g.save();
+    g.beginPath();
+    g.roundRect(54, 54, 404, 660, 192);
+    g.clip();
+
+    // Storm sky outside 30,000 ft (brightens dramatically on lightning flash!)
+    const sky = g.createLinearGradient(0, 54, 0, 714);
+    if (flash > 0.15) {
+      sky.addColorStop(0.0, '#1C2678');
+      sky.addColorStop(0.42, '#4A68CC');
+      sky.addColorStop(0.75, '#B6D0FF');
+      sky.addColorStop(1.0, '#2A368E');
+    } else {
+      sky.addColorStop(0.0, '#0D113A');
+      sky.addColorStop(0.50, '#1D296E');
+      sky.addColorStop(0.82, '#34479C');
+      sky.addColorStop(1.0, '#141B4F');
+    }
+    g.fillStyle = sky;
+    g.fillRect(54, 54, 404, 660);
+
+    // Drifting thunderclouds
+    for (const cl of clouds) {
+      const cx = 40 + ((cl.x - frame * cl.spd) % 440 + 440) % 440;
+      const cg = g.createRadialGradient(cx, cl.y, 10, cx, cl.y, cl.r);
+      const a = 0.28 + flash * 0.48;
+      cg.addColorStop(0, `rgba(${Math.round(110 + flash * 140)},${Math.round(135 + flash * 115)},255,${a.toFixed(3)})`);
+      cg.addColorStop(1, 'rgba(20,26,80,0)');
+      g.fillStyle = cg;
+      g.beginPath();
+      g.arc(cx, cl.y, cl.r, 0, Math.PI * 2);
+      g.fill();
+    }
+
+    // Forked electric lightning bolt across the storm clouds when flash > 0.2!
+    if (flash > 0.2) {
+      g.save();
+      g.shadowColor = '#BFD8FF';
+      g.shadowBlur = 24;
+      g.strokeStyle = `rgba(244,250,255,${Math.min(1, flash * 1.15).toFixed(3)})`;
+      g.lineWidth = 7 + flash * 5;
+      g.beginPath();
+      g.moveTo(318, 92);
+      g.lineTo(268, 224);
+      g.lineTo(312, 248);
+      g.lineTo(222, 412);
+      g.lineTo(256, 434);
+      g.lineTo(192, 542);
+      g.stroke();
+      // Secondary fork
+      g.lineWidth = 4;
+      g.beginPath();
+      g.moveTo(268, 224);
+      g.lineTo(198, 304);
+      g.lineTo(165, 362);
+      g.stroke();
+      g.restore();
+    }
+
+    // Dark silhouette airplane wing outside window with pulsing red wingtip strobe!
+    g.fillStyle = flash > 0.2 ? '#29326A' : '#13163A';
+    g.beginPath();
+    g.moveTo(54, 535);
+    g.lineTo(410, 488);
+    g.lineTo(458, 515);
+    g.lineTo(54, 622);
+    g.closePath();
+    g.fill();
+    g.strokeStyle = '#0A0C24';
+    g.lineWidth = 6;
+    g.stroke();
+
+    // Red wingtip beacon blink
+    const beacon = (frame % 24) < 6 ? 1.0 : 0.2;
+    const bg = g.createRadialGradient(402, 495, 2, 402, 495, 28);
+    bg.addColorStop(0, `rgba(255,90,75,${beacon})`);
+    bg.addColorStop(1, 'rgba(255,40,40,0)');
+    g.fillStyle = bg;
+    g.beginPath(); g.arc(402, 495, 28, 0, Math.PI * 2); g.fill();
+
+    // Fast wind-sheared rain streaks racing backward across the porthole glass
+    g.strokeStyle = `rgba(218,232,255,${(0.38 + flash * 0.35).toFixed(3)})`;
+    g.lineWidth = 3;
+    for (const d of drops) {
+      const rx = 56 + ((d.x - frame * d.spd) % 404 + 404) % 404;
+      const ry = 60 + ((d.y + frame * d.spd * 0.42) % 640 + 640) % 640;
+      g.beginPath();
+      g.moveTo(rx, ry);
+      g.lineTo(rx - d.len, ry + d.len * 0.55);
+      g.stroke();
+    }
+
+    // Wet glass highlight reflection
+    const ref = g.createLinearGradient(54, 54, 458, 714);
+    ref.addColorStop(0.0, 'rgba(185,205,255,0.28)');
+    ref.addColorStop(0.45, 'rgba(185,205,255,0)');
+    ref.addColorStop(1.0, 'rgba(15,18,52,0.34)');
+    g.fillStyle = ref;
+    g.fillRect(54, 54, 404, 660);
+    g.restore();
+
+    // Recessed molded bezel rim shadow & subtle outer rim highlight
+    g.strokeStyle = '#15173D';
+    g.lineWidth = 28;
+    g.beginPath();
+    g.roundRect(54, 54, 404, 660, 192);
+    g.stroke();
+
+    g.strokeStyle = 'rgba(155,172,248,0.42)';
+    g.lineWidth = 7;
+    g.beginPath();
+    g.roundRect(40, 40, 432, 688, 204);
+    g.stroke();
+
+    tex.needsUpdate = true;
+  }
+
+  update(0, 0);
+  return { texture: tex, update };
+}
+
+// 6. Glowing Crimson Aft EXIT Lightbox
+export function makeExitSignTexture() {
+  const [c, g] = makeCanvas(512, 192);
+  g.fillStyle = '#240B14';
+  g.fillRect(0, 0, 512, 192);
+
+  const grad = g.createRadialGradient(256, 96, 15, 256, 96, 250);
+  grad.addColorStop(0.0, '#FF6858');
+  grad.addColorStop(0.55, '#E82E28');
+  grad.addColorStop(1.0, '#A6171A');
+  g.fillStyle = grad;
+  g.beginPath();
+  g.roundRect(14, 14, 484, 164, 16);
+  g.fill();
+
+  g.strokeStyle = '#140812';
+  g.lineWidth = 12;
+  g.stroke();
+
+  g.fillStyle = '#FFF7F4';
+  g.font = '900 112px "Liberation Sans", "DejaVu Sans", Arial, sans-serif';
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.fillText('EXIT', 256, 100);
+  return toTex(c);
+}
+
+// 7. Overhead Illuminated FASTEN SEAT BELT Bar
+export function makeSeatbeltSignTexture() {
+  const [c, g] = makeCanvas(512, 128);
+  g.fillStyle = '#171838';
+  g.fillRect(0, 0, 512, 128);
+  g.strokeStyle = '#0D0E26';
+  g.lineWidth = 10;
+  g.strokeRect(5, 5, 502, 118);
+
+  g.fillStyle = '#FF5542';
+  g.font = '900 38px "Liberation Sans", "DejaVu Sans", Arial, sans-serif';
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.fillText('FASTEN SEAT BELT', 256, 66);
+
+  g.fillStyle = '#FFD27A';
+  g.beginPath(); g.arc(46, 64, 14, 0, Math.PI * 2); g.fill();
+  g.beginPath(); g.arc(466, 64, 14, 0, Math.PI * 2); g.fill();
+  return toTex(c);
+}
+
+// 8. Brushed Aluminum Drink Trolley Texture
+export function makeTrolleyMetalTexture() {
+  const [c, g] = makeCanvas(512, 512);
+  const grad = g.createLinearGradient(0, 0, 512, 512);
+  grad.addColorStop(0.0, '#6B74A8');
+  grad.addColorStop(0.45, '#4F578A');
+  grad.addColorStop(1.0, '#2F3464');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 512, 512);
+
+  for (let y = 24; y < 490; y += 22) {
+    g.fillStyle = 'rgba(18,20,48,0.28)';
+    g.fillRect(20, y, 472, 6);
+    g.fillStyle = 'rgba(175,190,250,0.14)';
+    g.fillRect(20, y + 6, 472, 3);
+  }
+  g.strokeStyle = '#141530';
+  g.lineWidth = 22;
+  g.strokeRect(11, 11, 490, 490);
+
+  g.fillStyle = '#181A38';
+  g.fillRect(216, 40, 80, 432);
+  g.strokeStyle = '#8A96D8';
+  g.lineWidth = 4;
+  g.strokeRect(216, 40, 80, 432);
+
+  g.fillStyle = '#D5DCFF';
+  g.font = '800 34px "DejaVu Sans", Arial, sans-serif';
+  g.fillText('GALLEY 02', 42, 86);
+  return toTex(c);
+}
+
+// 9. Dropped 2D Graphic Airline Safety Card on Aisle Floor
+export function makeSafetyCardTexture() {
+  const [c, g] = makeCanvas(512, 700);
+  g.fillStyle = '#EADFC8';
+  g.fillRect(0, 0, 512, 700);
+  g.strokeStyle = '#120E1E';
+  g.lineWidth = 18;
+  g.strokeRect(9, 9, 494, 682);
+
+  g.fillStyle = '#D13834';
+  g.fillRect(18, 18, 476, 125);
+  g.fillStyle = '#FFF9F0';
+  g.font = '900 58px "Liberation Sans", "DejaVu Sans", Arial, sans-serif';
+  g.textAlign = 'center';
+  g.fillText('EMERGENCY', 256, 98);
+
+  g.strokeStyle = '#120E1E';
+  g.lineWidth = 12;
+  g.strokeRect(52, 180, 408, 220);
+
+  g.fillStyle = '#2B3166';
+  g.beginPath();
+  g.ellipse(256, 290, 140, 32, -0.1, 0, Math.PI * 2);
+  g.fill();
+  g.stroke();
+
+  g.beginPath();
+  g.arc(118, 515, 30, 0, Math.PI * 2);
+  g.stroke();
+  g.beginPath();
+  g.moveTo(118, 545); g.lineTo(118, 622);
+  g.moveTo(118, 570); g.lineTo(166, 545);
+  g.stroke();
+
+  g.fillStyle = '#120E1E';
+  g.font = '800 42px "DejaVu Sans", Arial, sans-serif';
+  g.fillText('FLIGHT 404', 332, 548);
+  g.font = '700 30px "DejaVu Sans", Arial, sans-serif';
+  g.fillText('BRACE / EXIT', 332, 602);
+  return toTex(c);
+}
+
+// 10. Ripped Galley Curtain Texture
+export function makeGalleyCurtainTexture() {
+  const [c, g] = makeCanvas(512, 1024);
+  const grad = g.createLinearGradient(0, 0, 512, 0);
+  grad.addColorStop(0.0, '#1C1F52');
+  grad.addColorStop(0.3, '#2D3476');
+  grad.addColorStop(0.6, '#1B1D4A');
+  grad.addColorStop(1.0, '#2C3170');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 512, 1024);
+
+  for (let x = 24; x < 512; x += 52) {
+    g.fillStyle = 'rgba(8,10,32,0.45)';
+    g.fillRect(x, 0, 14, 1024);
+  }
+  return toTex(c);
+}

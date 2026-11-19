@@ -1,0 +1,5 @@
+build/
+out/raw.mp4
+out/preview_sheet.jpg
+__pycache__/
+*.pyc

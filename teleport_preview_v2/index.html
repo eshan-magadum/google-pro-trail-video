@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>2.5D Teleportation Preview v2.0 (1080x1920 @ 30 FPS)</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #1A1624; }
+    canvas { display: block; }
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./node_modules/three/build/three.module.js",
+        "three/addons/": "./node_modules/three/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <script>
+    window.addEventListener('error', (e) => {
+      fetch('/error', { method: 'POST', body: 'WindowError: ' + (e.message || e.error) + ' @ ' + e.filename + ':' + e.lineno }).catch(() => {});
+    });
+    window.addEventListener('unhandledrejection', (e) => {
+      fetch('/error', { method: 'POST', body: 'UnhandledRejection: ' + (e.reason && e.reason.stack || e.reason) }).catch(() => {});
+    });
+  </script>
+  <script type="module" src="./preview_scene.js"></script>
+</body>
+</html>
